@@ -29,16 +29,16 @@ fi
 
 # dep versions
 ZLIB="$(curl -s 'https://zlib.net/' | grep -ioP 'zlib-(\d+\.)+\d+' | sort -ruV | head -1)"
-ZLIB="${ZLIB:-zlib-1.2.13}"
+ZLIB="${ZLIB:-zlib-1.3.1}"
 echo "${ZLIB}"
 PCRE="$(curl -s 'https://sourceforge.net/projects/pcre/rss?path=/pcre/' | grep -ioP 'pcre-(\d+\.)+\d+' |sort -ruV | head -1)"
 PCRE="${PCRE:-pcre-8.45}"
 echo "${PCRE}"
 PCRE2="$(curl -s 'https://api.github.com/repos/PhilipHazel/pcre2/releases/latest' | grep -ioP 'pcre2-(\d+\.)+\d+' |sort -ruV | head -1)"
-PCRE2="${PCRE2:-pcre2-10.42}"
+PCRE2="${PCRE2:-pcre2-10.47}"
 echo "${PCRE2}"
-OPENSSL="$(curl -s 'https://openssl-library.org/source/' | grep -ioP 'openssl-3\.0\.\d+' | sort -ruV | head -1)"
-OPENSSL="${OPENSSL:-openssl-3.0.14}"
+OPENSSL="$(curl -s 'https://openssl-library.org/source/' | grep -ioP 'openssl-3\.5\.\d+' | sort -ruV | head -1)"
+OPENSSL="${OPENSSL:-openssl-3.5.4}"
 echo "${OPENSSL}"
 
 # clone and patch nginx
@@ -154,7 +154,7 @@ configure_args=(
 # no-ssl build
 echo "${configure_args[@]}"
 auto/configure "${configure_args[@]}" \
-    --with-cc-opt='-DFD_SETSIZE=1024 -s -O2 -fno-strict-aliasing -pipe'
+    --with-cc-opt='-DFD_SETSIZE=32768 -s -O2 -fno-strict-aliasing -pipe'
 
 # build
 make "-j$(nproc)"
@@ -173,7 +173,7 @@ configure_args+=(
 )
 echo "${configure_args[@]}"
 auto/configure "${configure_args[@]}" \
-    --with-cc-opt='-DFD_SETSIZE=1024 -s -O2 -fno-strict-aliasing -pipe' \
+    --with-cc-opt='-DFD_SETSIZE=32768 -s -O2 -fno-strict-aliasing -pipe' \
     --with-openssl-opt='no-tests -D_WIN32_WINNT=0x0501'
 
 # build
@@ -185,7 +185,7 @@ mv -f "objs/nginx.exe" "../nginx-${version}-${machine_str}.exe"
 # re-configure with debugging log
 configure_args+=(--with-debug)
 auto/configure "${configure_args[@]}"  \
-    --with-cc-opt='-DFD_SETSIZE=1024 -O2 -fno-strict-aliasing -pipe' \
+    --with-cc-opt='-DFD_SETSIZE=32768 -O2 -fno-strict-aliasing -pipe' \
     --with-openssl-opt='no-tests -D_WIN32_WINNT=0x0501'
 
 # re-build with debugging log
