@@ -13,7 +13,7 @@ done
 
 # create dir for docs
 mkdir -p docs
-pacman -S --needed libxml2
+pacman -S --needed libxml2 -y
 
 # init
 machine_str="$(gcc -dumpmachine | cut -d'-' -f1)"
