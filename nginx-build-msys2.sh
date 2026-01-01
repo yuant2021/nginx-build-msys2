@@ -13,7 +13,7 @@ done
 
 # create dir for docs
 mkdir -p docs
-pacman -S --needed --noconfirm libxml2 libxslt
+pacman -S --needed --noconfirm libxml2 libxslt wget
 
 # init
 machine_str="$(gcc -dumpmachine | cut -d'-' -f1)"
