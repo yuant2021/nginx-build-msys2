@@ -9,11 +9,11 @@ on:
         type: boolean
         default: false
       tag_name:
-        description: "Release tag name (e.g. v1.25.3), used only when release=true"
+        description: "Release tag name (e.g. v1.25.3)"
         type: string
         required: false
 
-  # tag 自动触发（等价 appveyor_repo_tag: true）
+  # tag 自动触发（等价 AppVeyor appveyor_repo_tag=true）
   push:
     tags:
       - '*'
@@ -28,7 +28,7 @@ jobs:
 
     defaults:
       run:
-        shell: cmd
+        shell: bash
 
     steps:
       - name: Checkout
@@ -46,38 +46,40 @@ jobs:
         env:
           MSYSTEM: MINGW64
         run: |
-          rem ===== 判断是否为 release 构建 =====
-          set IS_RELEASE=false
-          set TAG_NAME=
+          set -euo pipefail
+          echo "Workspace: $GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
 
-          if "%GITHUB_REF_TYPE%"=="tag" (
-            set IS_RELEASE=true
-            set TAG_NAME=%GITHUB_REF_NAME%
-          )
+          IS_RELEASE=false
+          TAG_NAME=""
 
-          if "%GITHUB_EVENT_NAME%"=="workflow_dispatch" (
-            if "%INPUT_RELEASE%"=="true" (
-              set IS_RELEASE=true
-              set TAG_NAME=%INPUT_TAG_NAME%
-            )
-          )
+          # tag push
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            IS_RELEASE=true
+            TAG_NAME="$GITHUB_REF_NAME"
+          fi
 
-          rem ===== 生成命令 =====
-          if "%IS_RELEASE%"=="true" (
-            echo Release build: %TAG_NAME%
-            set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh --tag=release-%TAG_NAME%
-          ) else (
-            echo Normal build
-            set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh
-          )
+          # manual workflow_dispatch
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${INPUT_RELEASE:-false}" == "true" ]]; then
+            IS_RELEASE=true
+            TAG_NAME="${INPUT_TAG_NAME:-manual}"
+          fi
 
-          C:\msys64\usr\bin\bash -lc "%cmdLine%"
+          if [[ "$IS_RELEASE" == "true" ]]; then
+            echo "Release build: $TAG_NAME"
+            ./nginx-build-msys2.sh --tag="release-$TAG_NAME"
+          else
+            echo "Normal build"
+            ./nginx-build-msys2.sh
+          fi
 
       - name: Package nginx
         env:
           MSYSTEM: MINGW64
         run: |
-          C:\msys64\usr\bin\bash -lc "cd \"%GITHUB_WORKSPACE%\" && exec ./nginx-package-msys2.sh"
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          ./nginx-package-msys2.sh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
