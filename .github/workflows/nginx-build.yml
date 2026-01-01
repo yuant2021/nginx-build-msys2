@@ -1,9 +1,22 @@
 name: Build nginx (MSYS2)
 
 on:
+  # 手动运行
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Build as release (tag mode)"
+        type: boolean
+        default: false
+      tag_name:
+        description: "Release tag name (e.g. v1.25.3), used only when release=true"
+        type: string
+        required: false
+
+  # tag 自动触发（等价 appveyor_repo_tag: true）
   push:
     tags:
-      - '*'          # 等价 appveyor_repo_tag: true
+      - '*'
     paths-ignore:
       - 'LICENSE'
       - '*.md'
@@ -21,10 +34,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1   # 等价 shallow_clone: true
+          fetch-depth: 1   # shallow_clone: true
 
-      # 如果 runner 上没有你需要的 MSYS2，可以显式安装
-      # windows-latest 默认已包含 msys2
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -35,10 +46,31 @@ jobs:
         env:
           MSYSTEM: MINGW64
         run: |
-          set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh
-          if not "%GITHUB_REF_TYPE%"=="tag" goto build
-          set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh --tag=release-%GITHUB_REF_NAME%
-          :build
+          rem ===== 判断是否为 release 构建 =====
+          set IS_RELEASE=false
+          set TAG_NAME=
+
+          if "%GITHUB_REF_TYPE%"=="tag" (
+            set IS_RELEASE=true
+            set TAG_NAME=%GITHUB_REF_NAME%
+          )
+
+          if "%GITHUB_EVENT_NAME%"=="workflow_dispatch" (
+            if "%INPUT_RELEASE%"=="true" (
+              set IS_RELEASE=true
+              set TAG_NAME=%INPUT_TAG_NAME%
+            )
+          )
+
+          rem ===== 生成命令 =====
+          if "%IS_RELEASE%"=="true" (
+            echo Release build: %TAG_NAME%
+            set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh --tag=release-%TAG_NAME%
+          ) else (
+            echo Normal build
+            set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh
+          )
+
           C:\msys64\usr\bin\bash -lc "%cmdLine%"
 
       - name: Package nginx
