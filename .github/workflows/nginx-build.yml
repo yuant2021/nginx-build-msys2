@@ -42,6 +42,22 @@ jobs:
           msystem: MINGW64
           update: false
 
+      - name: Install build dependencies
+        shell: msys2 {0}
+        env:
+          MSYSTEM: MINGW64
+        run: |
+          set -e
+          pacman -S --noconfirm --needed \
+            mingw-w64-x86_64-toolchain \
+            git \
+            make \
+            perl \
+            patch \
+            tar \
+            xz \
+            p7zip
+
       - name: Build nginx
         env:
           MSYSTEM: MINGW64
