@@ -28,7 +28,7 @@ jobs:
 
     defaults:
       run:
-        shell: bash
+        shell: msys2 {0}
 
     steps:
       - name: Checkout
