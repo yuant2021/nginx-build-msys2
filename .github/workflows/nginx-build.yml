@@ -1,0 +1,54 @@
+name: Build nginx (MSYS2)
+
+on:
+  push:
+    tags:
+      - '*'          # 等价 appveyor_repo_tag: true
+    paths-ignore:
+      - 'LICENSE'
+      - '*.md'
+      - '.gitignore'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1   # 等价 shallow_clone: true
+
+      # 如果 runner 上没有你需要的 MSYS2，可以显式安装
+      # windows-latest 默认已包含 msys2
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+
+      - name: Build nginx
+        env:
+          MSYSTEM: MINGW64
+        run: |
+          set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh
+          if not "%GITHUB_REF_TYPE%"=="tag" goto build
+          set cmdLine=cd "%GITHUB_WORKSPACE%" ^&^& exec ./nginx-build-msys2.sh --tag=release-%GITHUB_REF_NAME%
+          :build
+          C:\msys64\usr\bin\bash -lc "%cmdLine%"
+
+      - name: Package nginx
+        env:
+          MSYSTEM: MINGW64
+        run: |
+          C:\msys64\usr\bin\bash -lc "cd \"%GITHUB_WORKSPACE%\" && exec ./nginx-package-msys2.sh"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nginx-bin
+          path: nginx-bin.7z
